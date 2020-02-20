@@ -1,0 +1,130 @@
+<project name="kafka1" threads="2" pubsub="auto" heartbeat-interval="1">
+  <description><![CDATA[Test incoming and outgoing msg to kafka]]></description>
+  <metadata>
+    <meta id="studioUploadedBy">anonymous</meta>
+    <meta id="studioUploaded">1570741727744</meta>
+    <meta id="studioModifiedBy">anonymous</meta>
+    <meta id="studioModified">1571671963652</meta>
+    <meta id="layout">{"cq1":{"Save_30_Min":{"x":160,"y":-345},"func_eventNumber":{"x":160,"y":-220},"kafka_incoming":{"x":155,"y":-495},"kafka_outgoing":{"x":165,"y":55},"sum20":{"x":160,"y":-85}}}</meta>
+  </metadata>
+  <contqueries>
+    <contquery name="cq1">
+      <windows>
+        <window-source pubsub="true" index="pi_EMPTY" insert-only="true" autogen-key="true" name="kafka_incoming">
+          <schema>
+            <fields>
+              <field name="index_esp" type="int64" key="true"/>
+              <field name="user" type="double"/>
+              <field name="idl" type="double"/>
+            </fields>
+          </schema>
+          <connectors>
+            <connector class="kafka" name="kafka_IN">
+              <properties>
+                <property name="type"><![CDATA[pub]]></property>
+                <property name="dateformat"><![CDATA['%Y-%m-%d %H:%M:%S]]></property>
+                <property name="kafkainitialoffset"><![CDATA[smallest]]></property>
+                <property name="kafkaglobalconfig"><![CDATA[enable.sparse.connections=false]]></property>
+                <property name="useoffsetmsgid"><![CDATA[true]]></property>
+                <property name="kafkahostport"><![CDATA[iotdemo.na.sas.com:9092]]></property>
+                <property name="kafkapartition"><![CDATA[0]]></property>
+                <property name="kafkatopic"><![CDATA[iotdemo.na.sas.com_61001.kafka1.cq1.kafka_incoming.I]]></property>
+                <property name="kafkatype"><![CDATA[binary]]></property>
+                <property name="urlhostport"><![CDATA[iotdemo.na.sas.com_61001]]></property>
+              </properties>
+            </connector>
+          </connectors>
+        </window-source>
+        <window-compute pubsub="true" name="kafka_outgoing">
+          <expr-initialize>
+            <initializer type="int64"/>
+          </expr-initialize>
+          <schema>
+            <fields>
+              <field name="index_esp" type="int64" key="true"/>
+              <field name="user" type="double"/>
+              <field name="idl" type="double"/>
+              <field name="EventNumber" type="int64"/>
+              <field name="sum20" type="int64"/>
+            </fields>
+          </schema>
+          <output>
+            <field-expr><![CDATA[user]]></field-expr>
+            <field-expr><![CDATA[idl]]></field-expr>
+            <field-expr><![CDATA[EventNumber]]></field-expr>
+            <field-expr><![CDATA[sum20]]></field-expr>
+          </output>
+          <connectors>
+            <connector class="kafka" name="kafka_OUT">
+              <properties>
+                <property name="type"><![CDATA[sub]]></property>
+                <property name="dateformat"><![CDATA['%Y-%m-%d %H:%M:%S]]></property>
+                <property name="hotfailover"><![CDATA[true]]></property>
+                <property name="zookeeperhostport"><![CDATA[iotdemo.na.sas.com:2181]]></property>
+                <property name="kafkaglobalconfig"><![CDATA[enable.sparse.connections=false]]></property>
+                <property name="snapshot"><![CDATA[false]]></property>
+                <property name="kafkahostport"><![CDATA[iotdemo.na.sas.com:9092]]></property>
+                <property name="kafkapartition"><![CDATA[0]]></property>
+                <property name="kafkatopic"><![CDATA[iotdemo.na.sas.com_61001.kafka1.cq1.kafka_outgoing.O]]></property>
+                <property name="kafkatype"><![CDATA[binary]]></property>
+                <property name="urlhostport"><![CDATA[iotdemo.na.sas.com_61001]]></property>
+                <property name="numbufferedmsgs"><![CDATA[1000]]></property>
+              </properties>
+            </connector>
+          </connectors>
+        </window-compute>
+        <window-copy pubsub="true" name="Save_30_Min">
+          <retention type="bytime_sliding"><![CDATA[30 minutes]]></retention>
+        </window-copy>
+        <window-calculate pubsub="true" algorithm="Summary" name="sum20">
+          <description><![CDATA[Create sum of 100 rows of data.]]></description>
+          <schema>
+            <fields>
+              <field name="index_esp" type="int64" key="true"/>
+              <field name="user" type="double"/>
+              <field name="idl" type="double"/>
+              <field name="sum20" type="int64"/>
+              <field name="EventNumber" type="int64"/>
+            </fields>
+          </schema>
+          <parameters>
+            <properties>
+              <property name="windowLength"><![CDATA[20]]></property>
+            </properties>
+          </parameters>
+          <input-map>
+            <properties>
+              <property name="input"><![CDATA[idl]]></property>
+            </properties>
+          </input-map>
+          <output-map>
+            <properties>
+              <property name="sumOut"><![CDATA[sum20]]></property>
+            </properties>
+          </output-map>
+        </window-calculate>
+        <window-functional pubsub="true" name="func_eventNumber">
+          <schema>
+            <fields>
+              <field name="index_esp" type="int64" key="true"/>
+              <field name="user" type="double"/>
+              <field name="idl" type="double"/>
+              <field name="EventNumber" type="int64"/>
+            </fields>
+          </schema>
+          <function-context>
+            <functions>
+              <function name="EventNumber"><![CDATA[eventCounter()]]></function>
+            </functions>
+          </function-context>
+        </window-functional>
+      </windows>
+      <edges>
+        <edge source="kafka_incoming" target="Save_30_Min"/>
+        <edge source="sum20" target="kafka_outgoing"/>
+        <edge source="Save_30_Min" target="func_eventNumber"/>
+        <edge source="func_eventNumber" target="sum20" role="data"/>
+      </edges>
+    </contquery>
+  </contqueries>
+</project>
